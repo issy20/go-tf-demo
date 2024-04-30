@@ -24,8 +24,8 @@ jobs:
 
       - uses: "google-github-actions/auth@v2"
         with:
-          workload_identity_provider: "projects/${{ secrets.GCLOUD_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/sample-pool/providers/github"
-          service_account: ${{ secrets.SERVICE_ACCOUNT }}
+          workload_identity_provider: "projects/${{ secrets.GCLOUD_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github/providers/github-provider"
+          service_account: ${{ secrets.GA_SERVICE_ACCOUNT }}
 
       - uses: ko-build/setup-ko@v0.6
         env:
