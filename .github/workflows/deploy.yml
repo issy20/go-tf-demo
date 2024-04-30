@@ -1,0 +1,60 @@
+name: push image
+
+on:
+  push:
+    branches:
+      - "main"
+  workflow_dispatch: {}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: "write"
+      packages: "write"
+      id-token: "write"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - uses: "google-github-actions/auth@v2"
+        with:
+          workload_identity_provider: "projects/${{ secrets.GCLOUD_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/sample-pool/providers/github"
+          service_account: ${{ secrets.SERVICE_ACCOUNT }}
+
+      - uses: ko-build/setup-ko@v0.6
+        env:
+          KO_DOCKER_REPO: ${{ secrets.DOCKER_REPO }}
+
+      - name: Configure Docker
+        run: gcloud auth configure-docker asia-northeast2-docker.pkg.dev
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+
+      - run: ko publish --tags "${{ steps.meta.outputs.tags }},latest" ./cmd
+
+      - id: "deploy"
+        uses: "google-github-actions/deploy-cloudrun@v2"
+        with:
+          service: ${{ secrets.GCLOUD_SERVICE }}
+          image: ${{ secrets.DOCKER_REPO }}/${{ secrets.GCLOUD_IMAGE }}:latest
+          region: ${{ secrets.GCLOUD_REGION }}
+          flags: "--service-account ${{ secrets.SERVICE_ACCOUNT }} --platform managed --no-allow-unauthenticated"
+
+      - name: "Add IAM policy binding"
+        run: >-
+          gcloud run services add-iam-policy-binding ${{ secrets.GCLOUD_SERVICE }}
+          --member="serviceAccount:${{ secrets.SERVICE_ACCOUNT }}"
+          --role="roles/run.invoker"
+          --region="${{ secrets.GCLOUD_REGION }}"
+          --platform="managed"
+
+      - name: "Use output"
+        run: 'curl "${{ steps.deploy.outputs.url }}"'
