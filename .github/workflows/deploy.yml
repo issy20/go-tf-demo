@@ -46,15 +46,7 @@ jobs:
           service: ${{ secrets.GCLOUD_SERVICE }}
           image: ${{ secrets.DOCKER_REPO }}/${{ secrets.GCLOUD_IMAGE }}:latest
           region: ${{ secrets.GCLOUD_REGION }}
-          flags: "--service-account ${{ secrets.SERVICE_ACCOUNT }} --platform managed --no-allow-unauthenticated"
-
-      - name: "Add IAM policy binding"
-        run: >-
-          gcloud run services add-iam-policy-binding ${{ secrets.GCLOUD_SERVICE }}
-          --member="serviceAccount:${{ secrets.SERVICE_ACCOUNT }}"
-          --role="roles/run.invoker"
-          --region="${{ secrets.GCLOUD_REGION }}"
-          --platform="managed"
+          flags: "--platform managed --no-allow-unauthenticated"
 
       - name: "Use output"
         run: 'curl "${{ steps.deploy.outputs.url }}"'
